@@ -1,3 +1,11 @@
+function angle(cx, cy, ex, ey){
+    dy = ey - cy;
+    dx = ex - cx;
+    theta = Math.atan2(dy, dx);
+    theta *= 180 / Math.PI;
+    return theta;
+}
+
 !(function() {
     'use strict';
 
@@ -282,7 +290,9 @@
                 p1,
                 p2,
                 pixelDist,
-                dist;
+                dist,
+                lineDist = 0,
+                linePixelDist = 0;
 
             if (latLngs && latLngs.length && L.Util.isArray(latLngs[0])) {
                 // Outer ring is stored as an array in the first element,
@@ -295,22 +305,82 @@
             if (this._measurementOptions.showDistances && latLngs.length > 1) {
                 formatter = this._measurementOptions.formatDistance || L.bind(this.formatDistance, this);
 
-                for (var i = 1, len = latLngs.length; (isPolygon && i <= len) || i < len; i++) {
-                    ll1 = latLngs[i - 1];
-                    ll2 = latLngs[i % len];
-                    dist = ll1.distanceTo(ll2);
-                    totalDist += dist;
+                var distances = [];
+                var indexes = [];
 
+                var started = false;
+
+                // compute the angle of each line
+                var angles = [];
+                for (var i = 1, len = latLngs.length; i <= len; i++){
+                    ll1 = latLngs[(i - 1) % len];
+                    ll2 = latLngs[i % len];
                     p1 = this._map.latLngToLayerPoint(ll1);
                     p2 = this._map.latLngToLayerPoint(ll2);
+                    angles.push(angle(ll1.lng, ll1.lat, ll2.lng, ll2.lat));
+                }
 
-                    pixelDist = p1.distanceTo(p2);
+                // figure out where new lines start based on their change in angle
+                var line_starts = [];
+                var last_angle = angles[angles.length - 1];
+                for (var i = 0, len = angles.length; i < len; i++){
+                    if (Math.abs(last_angle - angles[i]) > 10){
+                        line_starts.push(1);
+                    } else{
+                        line_starts.push(0);
+                    }
 
-                    if (pixelDist >= options.minPixelDistance) {
-                        L.marker.measurement(
-                            this._map.layerPointToLatLng([(p1.x + p2.x) / 2, (p1.y + p2.y) / 2]),
-                            formatter(dist), options.lang.segmentLength, this._getRotation(ll1, ll2), options)
-                            .addTo(this._measurementLayer);
+                    last_angle = angles[i];
+                }
+
+                for (var i = 1, len = latLngs.length; (isPolygon && i <= len) || (i < len || (lineDist > 0 && i < (len*2))); i++) {
+                    var line_number = i - 1;
+                    if (line_starts[(line_number) % line_starts.length] == 1){
+                        started = true;
+                    }
+
+                    if (started) {
+                        ll1 = latLngs[(i - 1) % len];
+                        ll2 = latLngs[i % len];
+                        dist = ll1.distanceTo(ll2);
+                        totalDist += dist;
+
+                        p1 = this._map.latLngToLayerPoint(ll1);
+                        p2 = this._map.latLngToLayerPoint(ll2);
+
+                        pixelDist = p1.distanceTo(p2);
+
+                        if (line_starts[(line_number + 1) % line_starts.length] == 1) { //if the next line is the start of a line, stop counting
+                            dist += lineDist;
+
+                            for(var j = 0; j < distances.length; j++){
+                                if (distances[j] > (dist / 2)){
+                                    ll1 = latLngs[(indexes[j] - 1) % len];
+                                    ll2 = latLngs[(indexes[j]) % len];
+                                    p1 = this._map.latLngToLayerPoint(ll1);
+                                    p2 = this._map.latLngToLayerPoint(ll2);
+
+                                    break;
+                                }
+                            }
+
+                            if (pixelDist + linePixelDist >= options.minPixelDistance) {
+                                L.marker.measurement(
+                                    this._map.layerPointToLatLng([(p1.x + p2.x) / 2, (p1.y + p2.y) / 2]),
+                                    formatter(dist), options.lang.segmentLength, this._getRotation(ll1, ll2), options)
+                                    .addTo(this._measurementLayer);
+                            }
+
+                            lineDist = 0;
+                            linePixelDist = 0;
+                            distances = [];
+                            indexes = [];
+                        } else{
+                            lineDist += dist;
+                            linePixelDist += pixelDist;
+                            distances.push(lineDist);
+                            indexes.push(i);
+                        }
                     }
                 }
 
