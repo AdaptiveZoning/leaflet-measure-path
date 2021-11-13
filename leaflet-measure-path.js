@@ -223,6 +223,7 @@ function angle(cx, cy, ex, ey){
                 lang: {
                     totalLength: 'Total length',
                     totalArea: 'Total area',
+                    radius: 'Radius',
                     segmentLength: 'Segment length'
                 }
             }, options || {});
@@ -473,22 +474,22 @@ function angle(cx, cy, ex, ey){
             return originalReturnValue;
         }),
 
-        formatArea: formatArea,
+        formatDistance: formatDistance,
 
         updateMeasurements: function() {
             if (!this._measurementLayer) return;
 
             var latLng = this.getLatLng(),
                 options = this._measurementOptions,
-                formatter = options.formatArea || L.bind(this.formatArea, this);
+                formatter = options.formatDistance || L.bind(this.formatDistance, this);
 
             this._measurementLayer.clearLayers();
 
             if (options.showArea) {
-                formatter = options.formatArea || L.bind(this.formatArea, this);
-                var area = circleArea(this.getRadius());
+                formatter = options.formatDistance || L.bind(this.formatDistance, this);
+                var radius = this.getRadius();
                 L.marker.measurement(latLng,
-                    formatter(area), options.lang.totalArea, 0, options)
+                    formatter(radius), options.lang.radius, 0, options)
                     .addTo(this._measurementLayer);
             }
         }
