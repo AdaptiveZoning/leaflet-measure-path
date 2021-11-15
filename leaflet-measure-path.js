@@ -98,13 +98,8 @@ function angle(cx, cy, ex, ey){
             sqfeet;
 
         if (this._measurementOptions.imperial) {
-            if (a > 404.685642) {
-                a = a / 4046.85642;
-                unit = 'ac';
-            } else {
-                a = a / 0.09290304;
-                unit = 'ft²';
-            }
+            a = a / 0.09290304;
+            unit = 'ft²';
         } else if (this._measurementOptions.ha) {
             if (a > 1000000000) {
                 a = a / 1000000000;
@@ -127,7 +122,7 @@ function angle(cx, cy, ex, ey){
         if (a < 100) {
             return a.toFixed(1) + ' ' + unit;
         } else {
-            return Math.round(a) + ' ' + unit;
+            return (Math.round(a) + ' ' + unit).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
     }
 
