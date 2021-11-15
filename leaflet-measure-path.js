@@ -224,6 +224,7 @@ function angle(cx, cy, ex, ey){
                     totalLength: 'Total length',
                     totalArea: 'Total area',
                     radius: 'Radius',
+                    diameter: 'Diameter',
                     segmentLength: 'Segment length'
                 }
             }, options || {});
@@ -489,7 +490,7 @@ function angle(cx, cy, ex, ey){
                 formatter = options.formatDistance || L.bind(this.formatDistance, this);
                 var radius = this.getRadius();
                 L.marker.measurement(latLng,
-                    formatter(radius), options.lang.radius, 0, options)
+                    formatter(2*radius), options.lang.diameter, 0, options)
                     .addTo(this._measurementLayer);
             }
         }
